@@ -1,2 +1,6 @@
 #IMPORTANT
-If your are running the ui script make sure to run the setup.bat file first
+-If your are running the ui script make sure to run the setup.bat file first
+
+-run_app.bat for testing (if you don't want to make another exe to test)
+
+-When you want to update the exe file run the build_exe.bat file again

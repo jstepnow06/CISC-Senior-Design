@@ -34,6 +34,16 @@ def main() -> None:  # main function to open the window
     root.minsize(500, 300)
     root.configure(fg_color="#f5f5f5")
 
+
+    ex_text_label = ctk.CTkLabel(
+        master = root, #Where text goes
+        text = "THIS IS A TEST", # What it says
+        font = ("arial", 20), # How it looks
+        text_color = "black" #color of text
+    )
+
+    ex_text_label.pack(pady=40) #placing the text somewhere
+
     text = ctk.CTkLabel(root, text="Welcome to Sigma Music", fg_color="#f5f5f5")
     text.pack(pady=10)
 
@@ -43,6 +53,7 @@ def main() -> None:  # main function to open the window
     button = ctk.CTkButton(root, text="What is that melody?", command=lambda: on_button_click(image_label))
     button.pack(pady=10)
 
+    #KEEP THIS LINE AT THE END OF THE FUNCTION
     root.mainloop()  # keeps the window open; otherwise would just exit right after opening
 
 
