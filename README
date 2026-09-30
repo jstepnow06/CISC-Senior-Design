@@ -4,3 +4,6 @@
 -run_app.bat for testing (if you don't want to make another exe to test)
 
 -When you want to update the exe file run the build_exe.bat file again
+
+-Please run following in vscode terminal BEFORE your next git add/commit/push
+    git rm --cached -r build/ dist/ SigmaMusic.spec
