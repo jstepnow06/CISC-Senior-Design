@@ -1,5 +1,5 @@
-#this docker will use python3.11-slim as the base
-FROM python:3.11-slim
+#this docker will use python3.13-slim as the base
+FROM python:3.13-slim
 
 #installs required packages and the ffmpeg tools (for processing and converting audio/video files)
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
