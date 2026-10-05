@@ -7,3 +7,4 @@
 
 -Please run following in vscode terminal BEFORE your next git add/commit/push
     git rm --cached -r build/ dist/ SigmaMusic.spec
+    
