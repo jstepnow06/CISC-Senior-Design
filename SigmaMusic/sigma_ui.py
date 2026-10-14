@@ -65,7 +65,7 @@ def main() -> None:  # main function to open the window
 class frontPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent)
-        self.label = ctk.CTkLabel(self)
+        self.label = ctk.CTkLabel(self, text="This is the front Page")
         self.label.grid(row = 0, column = 0, padx = 20)
 
         #Goes to second (REPLACE WITH FUTURE PAGE IT WILL GO TO)
@@ -104,10 +104,12 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
         #screen_width = root_tk.winfo_screenwidth()
         #screen_height = root_tk.winfo_screenheight()
         
+        width = int(screen_width * 0.6)
+        height = int(screen_height * 0.6)
 
         # Note: other pages cannot be larger than root window size
         #Root size
-        self.geometry(f"{screen_width * 0.6}x{screen_height * 0.6}")
+        self.geometry(f"{width}x{height}")
 
         self.title("SigmaMusic main page")
 
@@ -122,9 +124,28 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
         container.grid_rowconfigure(0, weight = 1)
         container.grid_columnconfigure(0, weight = 1)
 
-        # when placing page, tells it to stretch all corners (nsew)
-        page = frontPage(parent=container, controller = self)
-        page.grid(row=0, column=0, sticky="nsew")
+        # dictionary for all of the pages
+        self.pages = {}
+
+        # placing all pages onto grid 
+        # IMPORTANT: WHEN ADDING NEW PAGES, ADD THEM TO THIS LIST BELOW
+        for PageClass in (frontPage, secondPage):
+            page_instance = PageClass(parent=container, controller=self)
+            self.pages[PageClass] = page_instance
+
+            # put them all in row 0, column 0
+            # when placing page, tells it to stretch all corners (nsew)
+            page_instance.grid(row=0, column=0, sticky="nsew")
+
+        self.show_page(frontPage)
+
+    #command for changing/showing a page onto the front of the grid
+    def show_page(self, page_class):
+        page = self.pages[page_class] # finding the page using it's class name
+        page.tkraise() #lifts that frame (page) into the top layer
+
+
+
 
         
 
