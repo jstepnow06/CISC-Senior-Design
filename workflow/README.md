@@ -1,6 +1,6 @@
 # Pipeline
 
-Simple test of YourMT3+ transcribing. This was set up using WSL (Windows Subsystem for Linux).
+Simple test of YourMT3+ & Beat_This transcribing . This was set up using WSL (Windows Subsystem for Linux).
 
 ## What you need
 

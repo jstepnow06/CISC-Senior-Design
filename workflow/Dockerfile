@@ -11,11 +11,16 @@ WORKDIR /work
 RUN pip install --no-cache-dir torch torchaudio \
     && pip install --no-cache-dir yourmt3 huggingface_hub torchcodec pretty_midi
 
-#puts Hugging Face model files in different folder (prevents permission issues)
+# keep model files in fixed spot (/models), not in HOME
+# models baked in at build, no re-download each run
+# HF_HOME = Hugging Face models, TORCH_HOME = PyTorch models
 ENV HF_HOME=/models
+ENV TORCH_HOME=/models/torch
 
 #install hugging face models
 RUN python -c "from huggingface_hub import hf_hub_download; hf_hub_download('shethjenil/Audio2Midi_Models', 'YMT3+.pt')" \
+    && python -c "import transformers" \
+    && python -c "from beat_this.inference import File2Beats; File2Beats(checkpoint_path='final0', device='cpu')" \
     && chmod -R a+rwX /models
 ENV HF_HUB_OFFLINE=1
  
