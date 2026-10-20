@@ -3,6 +3,8 @@ from pathlib import Path
 import customtkinter as ctk
 from PIL import Image
 
+from tkinter import filedialog #for working with files on system
+
 
 IMAGE_PATH = Path(__file__).resolve().parent.parent / "assets" / "SIGMA.png"
 
@@ -78,10 +80,23 @@ class frontPage(ctk.CTkFrame):
 
 # template for page to be switched into and from
 class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME 
+    #self here just refers to itself; it's own page/class
     def __init__(self, parent, controller):
         super().__init__(parent) # always has parent argument if not root page
+        
+        self.grid_columnconfigure(0, weight=1) #center horizontally
+
+        # space for row 0 and 1
+        self.grid_rowconfigure(0, weight=1) 
+        self.grid_rowconfigure(1, weight=1)
+
+        # push row 2 to bottom half of page
+        self.grid_rowconfigure(2, weight=2)
+
         self.label = ctk.CTkLabel(self, text="This is the Second Page!")
-        self.label.grid(row=0, column=0, padx=20, pady=20)
+
+        # tells this label to stick to the bottom of row 0
+        self.label.grid(row=0, column=0, padx=20, pady=20, sticky="s")
 
         # Button to go back to the front page
         self.btn = ctk.CTkButton(
@@ -89,7 +104,27 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
             text="Go Back Home", 
             command=lambda: controller.show_page(frontPage)
         )
-        self.btn.grid(row=1, column=0, padx=20, pady=10)
+        self.btn.grid(row=1, column=0, padx=20, pady=10, sticky="n")
+
+        #Uploading Audio
+        self.upload_btn = ctk.CTkButton(
+            self, 
+            text="Upload Audio File", 
+            command=self.upload_file #calls helper function below
+            )
+        self.upload_btn.grid(row=2, column=0, padx=20, pady=10, sticky="")
+
+    def upload_file(self): #helper function for uploading audio files
+        file_path = filedialog.askopenfilename(
+            title = "Select an Audio File (mp3 or wav)",
+            filetypes=[("Audio Files", "*.mp3 *.wav"), ("All Files","*.*")],
+        )
+
+        if file_path:
+            print(f"User selected: {file_path}")
+            # You save 'file_path' to a variable or pass it to your controller
+            self.label.configure(text=f"Loaded: {file_path.split('/')[-1]}")
+
 
 
 class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like main
@@ -130,6 +165,8 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
         # placing all pages onto grid 
         # IMPORTANT: WHEN ADDING NEW PAGES, ADD THEM TO THIS LIST BELOW
         for PageClass in (frontPage, secondPage):
+            #when creating the pages, parent is the container CTkFrame they are contained in
+            #In controller = self, the controller is reffering to the App class itself (root)
             page_instance = PageClass(parent=container, controller=self)
             self.pages[PageClass] = page_instance
 
