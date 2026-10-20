@@ -65,22 +65,35 @@ def main() -> None:  # main function to open the window
 class frontPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent)
-        self.label = ctk.CTkLabel(self, text="This is the front Page")
-        self.label.grid(row = 0, column = 0, padx = 20)
+        self.label = ctk.CTkLabel(self, text="Welcome to Sigma Music", 
+            font=("Castellar", 30), 
+            anchor="center", 
+            justify="center", 
+            width=self.cget("width"), 
+            text_color="gold"
+        )
+        self.label.grid(row = 0, column = 0, padx = 20, pady = 20)
+        self.label.place(relx=0.5, rely=0.2, anchor="center")
 
         #Goes to second (REPLACE WITH FUTURE PAGE IT WILL GO TO)
         self.btn = ctk.CTkButton(
             self,
-            text = "Go to Next Page",
-            command = lambda: controller.show_page(secondPage) #REPLACE secondPage WITH NEW PAGE NAME
+            text = "Get Started",
+            command = lambda: controller.show_page(secondPage), #REPLACE secondPage WITH NEW PAGE NAME
+            font = ("Centaur", 20, "bold"),
+            text_color = "gold",
+            fg_color = "gray29",
+            border_color = "black",
+            border_width = 3,
         )
-        self.btn.grid(row=1, column=0, padx=20, pady=10)
+        self.btn.grid(row=1, column=0, padx=20, pady=15)
+        self.btn.place(relx=0.5, rely=0.5, anchor="center")
 
 # template for page to be switched into and from
 class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME 
     def __init__(self, parent, controller):
         super().__init__(parent) # always has parent argument if not root page
-        self.label = ctk.CTkLabel(self, text="This is the Second Page!")
+        self.label = ctk.CTkLabel(self, text="This is the Second Page!", justify="center", font=("Arial", 20))
         self.label.grid(row=0, column=0, padx=20, pady=20)
 
         # Button to go back to the front page
