@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import customtkinter as ctk
 from PIL import Image
 
@@ -7,6 +6,21 @@ from tkinter import filedialog #for working with files on system
 
 
 IMAGE_PATH = Path(__file__).resolve().parent.parent / "assets" / "SIGMA.png"
+
+BUTTON_STYLE = {
+    "font": ("Centaur", 20, "bold"),
+    "text_color": "gold",
+    "fg_color": "gray29",
+    "border_color": "black",
+    "border_width": 3,
+}
+
+LABEL_STYLE = {
+    "font": ("Castellar", 30), 
+    "anchor": "center", 
+    "justify": "center", 
+    "text_color": "gold"
+}
 
 # REMINDER: delete comment string below later, restructuring app pages below it
 """"
@@ -68,11 +82,7 @@ class frontPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.label = ctk.CTkLabel(self, text="Welcome to Sigma Music", 
-            font=("Castellar", 30), 
-            anchor="center", 
-            justify="center", 
-            width=self.cget("width"), 
-            text_color="gold"
+            **LABEL_STYLE
         )
         self.label.grid(row = 0, column = 0, padx = 20, pady = 20)
         self.label.place(relx=0.5, rely=0.2, anchor="center")
@@ -82,11 +92,7 @@ class frontPage(ctk.CTkFrame):
             self,
             text = "Get Started",
             command = lambda: controller.show_page(secondPage), #REPLACE secondPage WITH NEW PAGE NAME
-            font = ("Centaur", 20, "bold"),
-            text_color = "gold",
-            fg_color = "gray29",
-            border_color = "black",
-            border_width = 3,
+            **BUTTON_STYLE
         )
         self.btn.grid(row=1, column=0, padx=20, pady=15)
         self.btn.place(relx=0.5, rely=0.5, anchor="center")
@@ -106,7 +112,7 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
         # push row 2 to bottom half of page
         self.grid_rowconfigure(2, weight=2)
 
-        self.label = ctk.CTkLabel(self, text="This is the Second Page!", justify="center", font=("Arial", 20))
+        self.label = ctk.CTkLabel(self, text="This is the Second Page!", **LABEL_STYLE)
 
         # tells this label to stick to the bottom of row 0
         self.label.grid(row=0, column=0, padx=20, pady=20, sticky="s")
@@ -115,7 +121,8 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
         self.btn = ctk.CTkButton(
             self, 
             text="Go Back Home", 
-            command=lambda: controller.show_page(frontPage)
+            command=lambda: controller.show_page(frontPage),
+            **BUTTON_STYLE
         )
         self.btn.grid(row=1, column=0, padx=20, pady=10, sticky="n")
 
@@ -123,7 +130,8 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
         self.upload_btn = ctk.CTkButton(
             self, 
             text="Upload Audio File", 
-            command=self.upload_file #calls helper function below
+            command=self.upload_file, #calls helper function below
+            **BUTTON_STYLE
             )
         self.upload_btn.grid(row=2, column=0, padx=20, pady=10, sticky="")
 
