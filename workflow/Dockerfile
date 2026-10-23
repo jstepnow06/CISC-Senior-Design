@@ -9,7 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
 WORKDIR /work
 #pip installs torch and pretty_midi libraries (for audio)
 RUN pip install --no-cache-dir torch torchaudio \
-    && pip install --no-cache-dir yourmt3 huggingface_hub torchcodec pretty_midi
+    && pip install --no-cache-dir yourmt3 huggingface_hub torchcodec pretty_midi \
+        https://github.com/CPJKU/beat_this/archive/main.zip
+
 
 # keep model files in fixed spot (/models), not in HOME
 # models baked in at build, no re-download each run
