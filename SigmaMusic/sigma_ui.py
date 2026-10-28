@@ -6,9 +6,10 @@ import threading
 from tkinter import filedialog #for working with files on system
 
 
-IMAGE_PATH = Path(__file__).resolve().parent.parent / "assets" / "SIGMA.png"
+IMAGE_PATH = Path(__file__).resolve().parent.parent / "assets" / "sigma_logo.png"
 WORKFLOW = Path(__file__).resolve().parent.parent / "workflow" # point to workflow folder for running pipeline
 FFMPEG_BIN = Path(__file__).resolve().parent.parent / "ffmpeg" / "bin" # torchcodec needs these DLLs to read audio
+BACKGROUND_SCALE = 0.7
 
 BUTTON_STYLE = {
     "font": ("Centaur", 20, "bold"),
@@ -84,11 +85,24 @@ def main() -> None:  # main function to open the window
 class frontPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent)
-        self.label = ctk.CTkLabel(self, text="Welcome to Sigma Music", 
+        self.configure(fg_color="gray20")
+        image = Image.open(IMAGE_PATH)
+        self.image_ratio = image.width / image.height
+        self.sigma_image = ctk.CTkImage(
+            light_image=image,
+            dark_image=image,
+            size=(1, 1)
+        )
+        self.label = ctk.CTkLabel(self, image=self.sigma_image, text="")
+        self.label.place(relx=0.5, rely=0.5, relwidth=0.7, relheight=0.7, anchor="center")
+        self.bind("<Configure>", self._resize_image)
+
+        self.welcome_label = ctk.CTkLabel(
+            self,
+            text="Welcome to Sigma Music",
             **LABEL_STYLE
         )
-        self.label.grid(row = 0, column = 0, padx = 20, pady = 20)
-        self.label.place(relx=0.5, rely=0.2, anchor="center")
+        self.welcome_label.place(relx=0.5, rely=0.25, anchor="center")
 
         #Goes to second (REPLACE WITH FUTURE PAGE IT WILL GO TO)
         self.btn = ctk.CTkButton(
@@ -98,7 +112,20 @@ class frontPage(ctk.CTkFrame):
             **BUTTON_STYLE
         )
         self.btn.grid(row=1, column=0, padx=20, pady=15)
-        self.btn.place(relx=0.5, rely=0.5, anchor="center")
+        self.btn.place(relx=0.5, rely=0.75, anchor="center")
+
+    def _resize_image(self, event) -> None:
+        width = int(event.width * BACKGROUND_SCALE)
+        height = int(event.height * BACKGROUND_SCALE)
+
+        if width / height > self.image_ratio:
+            width = int(height * self.image_ratio)
+        else:
+            height = int(width / self.image_ratio)
+
+        self.sigma_image.configure(
+            size=(max(1, width), max(1, height))
+        )
 
 # template for page to be switched into and from
 class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME 
@@ -210,6 +237,54 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
         container.grid_rowconfigure(0, weight = 1)
         container.grid_columnconfigure(0, weight = 1)
 
+        # The drawer and its in-menu button stay above the current page.
+        self.menu = ctk.CTkFrame(
+            container,
+            width=240,
+            corner_radius=0,
+            fg_color=("gray94", "gray12"),
+            border_width=1,
+            border_color=("gray75", "gray30"),
+        )
+        self.menu_open = False
+        self.menu_animating = False
+        self.menu_animation_steps = 15
+        self.menu_animation_interval = 12
+
+        self.menu_button = ctk.CTkButton(
+            self.menu,
+            text="☰",
+            width=44,
+            height=44,
+            font=("Arial", 26, "bold"),
+            text_color="gold",
+            fg_color="transparent",
+            hover_color="gray25",
+            command=self.toggle_menu,
+        )
+        # Anchor to the drawer's top-right so this follows its width.
+        self.menu_button.place(
+            relx=1.0,
+            x=-12,
+            y=12,
+            anchor="ne",
+        )
+
+        # Keep a separate trigger visible while the drawer is closed.
+        self.menu_trigger_button = ctk.CTkButton(
+            container,
+            text="☰",
+            width=44,
+            height=44,
+            font=("Arial", 26, "bold"),
+            text_color="gold",
+            fg_color="transparent",
+            hover_color="gray25",
+            command=self.toggle_menu,
+        )
+        self.menu_trigger_button.place(x=12, y=12)
+
+
         # dictionary for all of the pages
         self.pages = {}
 
@@ -231,6 +306,49 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
     def show_page(self, page_class):
         page = self.pages[page_class] # finding the page using it's class name
         page.tkraise() #lifts that frame (page) into the top layer
+        if self.menu_open or self.menu_animating:
+            self.menu.lift()
+        else:
+            self.menu_trigger_button.lift()
+
+    def toggle_menu(self):
+        # Ignore clicks until the current slide animation finishes.
+        if self.menu_animating:
+            return
+
+        self.menu_width = self.menu.winfo_reqwidth()
+        opening = not self.menu_open
+        self.menu_animating = True
+        if opening:
+            self.menu_trigger_button.place_forget()
+            self.menu.place(x=-self.menu_width, y=0, relheight=1)
+            self.menu.lift()
+        else:
+            self.menu_button.lift()
+        self.animate_menu(opening, 0)
+
+    def animate_menu(self, opening, step):
+        # Ease the movement at both ends for a smoother slide.
+        progress = step / self.menu_animation_steps
+        eased_progress = progress * progress * (3 - 2 * progress)
+        start_x = -self.menu_width if opening else 0
+        end_x = 0 if opening else -self.menu_width
+        menu_x = round(start_x + (end_x - start_x) * eased_progress)
+
+        self.menu.place(x=menu_x, y=0, relheight=1)
+
+        if step == self.menu_animation_steps:
+            self.menu_animating = False
+            self.menu_open = opening
+            if not opening:
+                self.menu.place_forget()
+                self.menu_trigger_button.place(x=12, y=12)
+            return
+
+        self.after(
+            self.menu_animation_interval,
+            lambda: self.animate_menu(opening, step + 1),
+        )
 
 
 
