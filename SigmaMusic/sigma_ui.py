@@ -180,6 +180,34 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
         container.grid_rowconfigure(0, weight = 1)
         container.grid_columnconfigure(0, weight = 1)
 
+        self.menu_width = 240
+        self.menu = ctk.CTkFrame(
+            container,
+            width=self.menu_width,
+            corner_radius=0,
+            fg_color=("gray94", "gray12"),
+            border_width=1,
+            border_color=("gray75", "gray30"),
+        )
+        self.menu_open = False
+        self.menu_animating = False
+        self.menu_animation_steps = 15
+        self.menu_animation_interval = 12
+
+        self.menu_button = ctk.CTkButton(
+            container,
+            text="☰",
+            width=44,
+            height=44,
+            font=("Arial", 26, "bold"),
+            text_color="gold",
+            fg_color="transparent",
+            hover_color="gray25",
+            command=self.toggle_menu,
+        )
+        self.menu_button.place(x=12, y=12)
+
+
         # dictionary for all of the pages
         self.pages = {}
 
@@ -201,6 +229,44 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
     def show_page(self, page_class):
         page = self.pages[page_class] # finding the page using it's class name
         page.tkraise() #lifts that frame (page) into the top layer
+        if self.menu_open or self.menu_animating:
+            self.menu.lift()
+        self.menu_button.lift()
+
+    def toggle_menu(self):
+        if self.menu_animating:
+            return
+
+        opening = not self.menu_open
+        self.menu_animating = True
+        if opening:
+            self.menu.place(x=-self.menu_width, y=0, relheight=1)
+            self.menu.lift()
+        self.menu_button.lift()
+        self.animate_menu(opening, 0)
+
+    def animate_menu(self, opening, step):
+        progress = step / self.menu_animation_steps
+        eased_progress = progress * progress * (3 - 2 * progress)
+        start_x = -self.menu_width if opening else 0
+        end_x = 0 if opening else -self.menu_width
+        menu_x = round(start_x + (end_x - start_x) * eased_progress)
+
+        self.menu.place(x=menu_x, y=0, relheight=1)
+        button_x = menu_x + self.menu_width - 44 - 12
+        self.menu_button.place(x=button_x if opening or step < self.menu_animation_steps else 12, y=12)
+
+        if step == self.menu_animation_steps:
+            self.menu_animating = False
+            self.menu_open = opening
+            if not opening:
+                self.menu.place_forget()
+            return
+
+        self.after(
+            self.menu_animation_interval,
+            lambda: self.animate_menu(opening, step + 1),
+        )
 
 
 
