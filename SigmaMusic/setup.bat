@@ -1,7 +1,7 @@
 echo "==============================="
 echo "Installing CustomTkinter..."
 echo "==============================="
-pip3 install -r SigmaMusic/requirements.txt
+py -m pip install -r requirements.txt
 echo "==================================================="
 echo "Installation complete! You can now run the app."
 echo "==================================================="
