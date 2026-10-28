@@ -1,11 +1,14 @@
 from pathlib import Path
+import os, subprocess, sys #for running the pipeline scripts
 import customtkinter as ctk
 from PIL import Image
-
+import threading 
 from tkinter import filedialog #for working with files on system
 
 
 IMAGE_PATH = Path(__file__).resolve().parent.parent / "assets" / "SIGMA.png"
+WORKFLOW = Path(__file__).resolve().parent.parent / "workflow" # point to workflow folder for running pipeline
+FFMPEG_BIN = Path(__file__).resolve().parent.parent / "ffmpeg" / "bin" # torchcodec needs these DLLs to read audio
 
 BUTTON_STYLE = {
     "font": ("Centaur", 20, "bold"),
@@ -145,6 +148,33 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
             print(f"User selected: {file_path}")
             # You save 'file_path' to a variable or pass it to your controller
             self.label.configure(text=f"Loaded: {file_path.split('/')[-1]}")
+            self.upload_btn.configure(state="disabled") #Limit to one song at a time
+            self.result = None
+            # Start the pipeline in a separate thread to avoid freezing the GUI
+            threading.Thread(target=self.run_pipeline, args=(file_path,), daemon=True).start()
+            self.after(200, self.check)
+
+    def run_pipeline(self, file_path):
+            # runs each step with the same python as the GUI (.venv), outputs land next to the song
+            # song.wav -> song_ymt3.mid, song_beats.json
+            for script in ("MIDIscribe.py", "beats.py"):
+                result = subprocess.run([sys.executable, str(WORKFLOW / script), file_path],
+                                        cwd=Path(file_path).parent,
+                                        env={**os.environ, "PATH": f"{FFMPEG_BIN};{os.environ['PATH']}"})
+                # error handling if scripts fail
+                if result.returncode != 0:
+                    self.result = f"{script} failed (see terminal)"
+                    return
+
+            self.result = "Done!"
+
+    def check(self):
+        # Keep checking if pipeline is finished
+        if self.result is None:
+            self.after(200, self.check)
+            return
+        self.label.configure(text=self.result)
+        self.upload_btn.configure(state="normal")
 
 
 
