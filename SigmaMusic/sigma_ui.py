@@ -3,25 +3,12 @@ import customtkinter as ctk
 from PIL import Image
 
 from tkinter import filedialog #for working with files on system
+from audio_player import AudioPlayer
+from styles import BUTTON_STYLE, LABEL_STYLE
 
-
+#Defines parameters for displaying the logo
 IMAGE_PATH = Path(__file__).resolve().parent.parent / "assets" / "sigma_logo.png"
 BACKGROUND_SCALE = 0.7
-
-BUTTON_STYLE = {
-    "font": ("Centaur", 20, "bold"),
-    "text_color": "gold",
-    "fg_color": "gray29",
-    "border_color": "black",
-    "border_width": 3,
-}
-
-LABEL_STYLE = {
-    "font": ("Castellar", 30), 
-    "anchor": "center", 
-    "justify": "center", 
-    "text_color": "gold"
-}
 
 # REMINDER: delete comment string below later, restructuring app pages below it
 """"
@@ -82,7 +69,11 @@ def main() -> None:  # main function to open the window
 class frontPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent)
+
+        #Configures styling of page
         self.configure(fg_color="gray20")
+
+        #Defines image to be displayed as background
         image = Image.open(IMAGE_PATH)
         self.image_ratio = image.width / image.height
         self.sigma_image = ctk.CTkImage(
@@ -94,16 +85,15 @@ class frontPage(ctk.CTkFrame):
         self.label.place(relx=0.5, rely=0.5, relwidth=0.7, relheight=0.7, anchor="center")
         self.bind("<Configure>", self._resize_image)
 
-        self.welcome_label = ctk.CTkLabel(
-            self,
+        #Generates heading of main page
+        self.welcome_label = ctk.CTkLabel(self,
             text="Welcome to Sigma Music",
             **LABEL_STYLE
         )
         self.welcome_label.place(relx=0.5, rely=0.25, anchor="center")
 
-        #Goes to second (REPLACE WITH FUTURE PAGE IT WILL GO TO)
-        self.btn = ctk.CTkButton(
-            self,
+        #Button to move on to second page
+        self.btn = ctk.CTkButton(self,
             text = "Get Started",
             command = lambda: controller.show_page(secondPage), #REPLACE secondPage WITH NEW PAGE NAME
             **BUTTON_STYLE
@@ -111,6 +101,7 @@ class frontPage(ctk.CTkFrame):
         self.btn.grid(row=1, column=0, padx=20, pady=15)
         self.btn.place(relx=0.5, rely=0.75, anchor="center")
 
+    #Modifies the size of the background image based on previously defined scale
     def _resize_image(self, event) -> None:
         width = int(event.width * BACKGROUND_SCALE)
         height = int(event.height * BACKGROUND_SCALE)
@@ -138,6 +129,7 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
 
         # push row 2 to bottom half of page
         self.grid_rowconfigure(2, weight=2)
+        self.grid_rowconfigure(3, weight=1)
 
         self.label = ctk.CTkLabel(self, text="This is the Second Page!", **LABEL_STYLE)
 
@@ -162,6 +154,9 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
             )
         self.upload_btn.grid(row=2, column=0, padx=20, pady=10, sticky="")
 
+        self.player_frame = AudioPlayer(self)
+        self.player_frame.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
+
     def upload_file(self): #helper function for uploading audio files
         file_path = filedialog.askopenfilename(
             title = "Select an Audio File (mp3 or wav)",
@@ -169,9 +164,7 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
         )
 
         if file_path:
-            print(f"User selected: {file_path}")
-            # You save 'file_path' to a variable or pass it to your controller
-            self.label.configure(text=f"Loaded: {file_path.split('/')[-1]}")
+            self.player_frame.load_audio(Path(file_path))
 
 
 
@@ -195,6 +188,7 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
         self.geometry(f"{width}x{height}")
 
         self.title("SigmaMusic main page")
+        self.protocol("WM_DELETE_WINDOW", self.close_app)
 
         # Container frame that that holds pages
         container = ctk.CTkFrame(self) 
@@ -271,6 +265,12 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
             page_instance.grid(row=0, column=0, sticky="nsew")
 
         self.show_page(frontPage)
+
+    def close_app(self):
+        second_page = self.pages.get(secondPage)
+        if second_page is not None:
+            second_page.player_frame.close()
+        self.destroy()
 
     #command for changing/showing a page onto the front of the grid
     def show_page(self, page_class):
