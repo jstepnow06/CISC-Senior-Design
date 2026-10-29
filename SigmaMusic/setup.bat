@@ -42,11 +42,11 @@ if errorlevel 1 exit /b 1
 
 echo Detecting GPU support...
 set "MODEL_INSTALL_FLAGS=--no-deps"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$gpu = Get-CimInstance Win32_VideoController | Where-Object { $_.Name -and $_.Name -notmatch 'Microsoft Basic|Remote Display' }; if ($gpu) { exit 0 } else { exit 1 }" >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$gpu = Get-CimInstance Win32_VideoController | Where-Object { $_.Name -match 'NVIDIA' }; if ($gpu) { exit 0 } else { exit 1 }" >nul 2>&1
 if errorlevel 1 (
-    echo No supported GPU detected. Skipping PyTorch.
+    echo No NVIDIA GPU detected. Skipping PyTorch.
 ) else (
-    echo GPU detected. Installing PyTorch...
+    echo NVIDIA GPU detected. Installing PyTorch...
     "%PYTHON%" -m pip install torch
     if errorlevel 1 exit /b 1
     set "MODEL_INSTALL_FLAGS="
