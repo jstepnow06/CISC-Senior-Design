@@ -225,6 +225,7 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
 
         # tells container to fill entire root window
         container.pack(side="top", fill="both", expand=True)
+        self.page_container = container
 
 
         # using a grid to organize pages, tells row and columns to grow
@@ -240,6 +241,9 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
             border_width=1,
             border_color=("gray75", "gray30"),
         )
+        self.menu.grid_columnconfigure(0, weight=1)
+        self.menu.grid_columnconfigure(1, weight=0)
+        self.menu.grid_rowconfigure(3, weight=1)
         self.menu_open = False
         self.menu_animating = False
         self.menu_animation_steps = 15
@@ -257,12 +261,7 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
             command=self.toggle_menu,
         )
         # Anchor to the drawer's top-right so this follows its width.
-        self.menu_button.place(
-            relx=1.0,
-            x=-12,
-            y=12,
-            anchor="ne",
-        )
+        self.menu_button.grid(row=0, column=1, padx=12, pady=(12, 8), sticky="e")
 
         # Keep a separate trigger visible while the drawer is closed.
         self.menu_trigger_button = ctk.CTkButton(
@@ -278,6 +277,38 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
         )
         self.menu_trigger_button.place(x=12, y=12)
 
+        self.new_project_button = ctk.CTkButton(
+            self.menu,
+            text="New project",
+            command=self.create_project,
+            **BUTTON_STYLE,
+        )
+        self.new_project_button.grid(
+            row=1, column=0, columnspan=2, sticky="ew", padx=12, pady=8
+        )
+
+        self.home_button = ctk.CTkButton(
+            self.menu,
+            text="Home",
+            command=lambda: self.show_page(frontPage),
+            **BUTTON_STYLE,
+        )
+        self.home_button.grid(
+            row=2, column=0, columnspan=2, sticky="ew", padx=12, pady=(0, 8)
+        )
+
+        self.project_list = ctk.CTkScrollableFrame(
+            self.menu,
+            fg_color="transparent",
+            corner_radius=0,
+        )
+        self.project_list.grid(
+            row=3, column=0, columnspan=2, sticky="nsew", padx=8, pady=(0, 8)
+        )
+
+        self.project_pages = {}
+        self.project_buttons = {}
+        self.project_count = 0
 
         # dictionary for all of the pages
         self.pages = {}
@@ -304,12 +335,31 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
 
     #command for changing/showing a page onto the front of the grid
     def show_page(self, page_class):
-        page = self.pages[page_class] # finding the page using it's class name
+        page = self.pages[page_class] if page_class in self.pages else page_class
         page.tkraise() #lifts that frame (page) into the top layer
         if self.menu_open or self.menu_animating:
             self.menu.lift()
+            self.menu_button.lift()
         else:
             self.menu_trigger_button.lift()
+
+    def create_project(self):
+        self.project_count += 1
+        project_name = f"Project {self.project_count}"
+        project_page = ctk.CTkFrame(self.page_container)
+        project_page.grid(row=0, column=0, sticky="nsew")
+        self.project_pages[project_name] = project_page
+
+        project_button = ctk.CTkButton(
+            self.project_list,
+            text=project_name,
+            command=lambda page=project_page: self.show_page(page),
+            **BUTTON_STYLE,
+        )
+        project_button.pack(fill="x", pady=4)
+        self.project_buttons[project_name] = project_button
+
+        self.show_page(project_page)
 
     def toggle_menu(self):
         # Ignore clicks until the current slide animation finishes.
@@ -323,6 +373,7 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
             self.menu_trigger_button.place_forget()
             self.menu.place(x=-self.menu_width, y=0, relheight=1)
             self.menu.lift()
+            self.menu_button.lift()
         else:
             self.menu_button.lift()
         self.animate_menu(opening, 0)
@@ -343,6 +394,7 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
             if not opening:
                 self.menu.place_forget()
                 self.menu_trigger_button.place(x=12, y=12)
+                self.menu_trigger_button.lift()
             return
 
         self.after(
