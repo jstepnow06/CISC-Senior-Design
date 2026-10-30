@@ -57,6 +57,18 @@ echo Installing music model packages...
 "%PYTHON%" -m pip install yourmt3 beat-this torchcodec
 if errorlevel 1 exit /b 1
 
+:: torchcodec needs FFmpeg's shared DLLs; download them into ffmpeg\bin if missing (curl + tar ship with Windows 10/11)
+set "FF=ffmpeg-n8.1-latest-win64-lgpl-shared-8.1"
+if not exist "%ROOT%\ffmpeg\bin\ffmpeg.exe" (
+    echo Downloading FFmpeg...
+    curl -fL -o "%ROOT%\%FF%.zip" "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/%FF%.zip"
+    if errorlevel 1 exit /b 1
+    tar -xf "%ROOT%\%FF%.zip" -C "%ROOT%"
+    if errorlevel 1 exit /b 1
+    move "%ROOT%\%FF%" "%ROOT%\ffmpeg" >nul
+    del "%ROOT%\%FF%.zip"
+)
+
 echo Configuring FFmpeg...
 set "FFMPEG_BIN="
 if defined FFMPEG_PATH if exist "%FFMPEG_PATH%\ffmpeg.exe" set "FFMPEG_BIN=%FFMPEG_PATH%"
