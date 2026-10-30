@@ -258,11 +258,13 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
         if self.result is None:
             self.after(200, self.check)
             return
+        self.upload_btn.configure(state="normal")
+        self.process_btn.configure(state="normal")
         if isinstance(self.result, Path):
             self.controller.show_pdf(self.result)
         else:
             self.label.configure(text=self.result)
-            self.process_btn.configure(state="normal")
+            
 
 
 class pdfPage(ctk.CTkFrame):
