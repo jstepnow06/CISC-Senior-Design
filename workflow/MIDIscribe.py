@@ -5,7 +5,7 @@ from huggingface_hub import hf_hub_download
 from yourmt3 import YMT3
 
 
-# load YourMT3+ (checkpoint is baked into the Docker image, no download at run time)
+# load YourMT3+ 
 def load_model():
     ckpt = hf_hub_download("shethjenil/Audio2Midi_Models", "YMT3+.pt")
     return YMT3(ckpt, "YMT3+", device="cuda" if torch.cuda.is_available() else "cpu")
@@ -14,7 +14,6 @@ def load_model():
 def transcribe(model, audio, out_mid, progress=lambda i, total: None):
     model.predict(str(audio), 8, progress, str(out_mid))
 
-# script use only (run.sh). skipped when server.py imports this file
 if __name__ == "__main__":
     print("cuda available:", torch.cuda.is_available())
     model = load_model()
