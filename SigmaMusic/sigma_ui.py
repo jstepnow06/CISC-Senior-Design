@@ -209,7 +209,7 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
     def run_pipeline(self, file_path):
             # runs each step with the same python as the GUI (.venv), outputs land next to the song
             # song.wav -> song_ymt3.mid, song_beats.json
-            for script in ("MIDIscribe.py", "beats.py"):
+            for script in ("MIDIscribe.py", "beats.py", "quant.py"):
                 result = subprocess.run(
                     [sys.executable, str(WORKFLOW / script), str(file_path)],
                     cwd=file_path.parent,
@@ -231,6 +231,7 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
         beats_path = output_stem.parent / f"{output_stem.name}_beats.json"
         midi_path = output_stem.parent / f"{output_stem.name}_ymt3.mid"
         pdf_path = output_stem.parent / f"{output_stem.name}_output.pdf"
+        quant_path = output_stem.parent / f"{output_stem.name}_quant.mid"
 
         with beats_path.open(encoding="utf-8") as beats_file:
             beats = json.load(beats_file)
@@ -243,6 +244,7 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
         lines = (
             f"Audio file: {file_path.name}",
             f"MIDI output: {midi_path.name}",
+            f"Quantized MIDI: {quant_path.name}",
             f"Estimated tempo: {beats['bpm']:.1f} BPM",
             f"Beats per bar: {beats['beats_per_bar']}",
             f"Total beats: {len(beats['beats'])}",
