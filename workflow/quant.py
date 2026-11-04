@@ -3,6 +3,8 @@ import numpy as np
 import pretty_midi
 import mido
 
+GRIDS = {4: "16ths", 3: "8th-note triplets"}
+
 def load(midi_path, beats_path):
     pm = pretty_midi.PrettyMIDI(str(midi_path))
     with open(beats_path) as f:
@@ -34,6 +36,15 @@ def build_grid(beats, beats_per_bar, pickup, song_end):
     
     return np.concatenate([before, beats, after]), add_before, len(after)
 
+# Test which grid fits better 16th or triplets
+# Take note starts in second and interp and arange them
+# Find average miss of all the notes 
+def off_grid(pm, grid):
+    starts = np.interp([n.start for inst in pm.instruments for n in inst.notes],
+                       grid, np.arange(len(grid)))
+    return {steps: np.mean(np.abs(starts * steps - np.round(starts * steps)) /
+                           steps) for steps in GRIDS}
+
 def quantize(midi_path, beats_path, out_path):
     pm, beats_info = load(midi_path, beats_path)
     beats = np.array(beats_info["beats"])
@@ -48,6 +59,12 @@ def quantize(midi_path, beats_path, out_path):
     # print test statement will delete in future    
     print(f"grid: {(len(grid)- 1) // beats_per_bar} measures from {grid[0]:.2f}s to {grid[-1]:.2f}s, "
           f"{add_before} beats added before, {add_after} after")
+    off = off_grid(pm, grid)
+    steps = min(off, key=off.get) # Pick smallest miss.
+    for s, label in GRIDS.items():
+        # test statement -> delete in future
+        print(f"{label:18s} off the grid by {off[s]:.3f} beats on average")
+    print(f"snapped to {GRIDS[steps]}:")
           
     return out_path
 
