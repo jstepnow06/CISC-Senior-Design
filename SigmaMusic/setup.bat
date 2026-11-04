@@ -41,33 +41,20 @@ echo Installing application dependencies...
 if errorlevel 1 exit /b 1
 
 echo Detecting GPU support...
-set "MODEL_INSTALL_INDEX=https://download.pytorch.org/whl/cpu"
+set "MODEL_INSTALL_FLAGS=--no-deps"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$gpu = Get-CimInstance Win32_VideoController | Where-Object { $_.Name -match 'NVIDIA' }; if ($gpu) { exit 0 } else { exit 1 }" >nul 2>&1
 if errorlevel 1 (
-    echo No NVIDIA GPU detected. Installing CPU PyTorch...
+    echo No NVIDIA GPU detected. Skipping PyTorch.
 ) else (
-    echo NVIDIA GPU detected. Installing PyTorch for GPU...
-    set "MODEL_INSTALL_INDEX=https://download.pytorch.org/whl/cu128"
+    echo NVIDIA GPU detected. Installing PyTorch...
+    "%PYTHON%" -m pip install torch
+    if errorlevel 1 exit /b 1
+    set "MODEL_INSTALL_FLAGS="
 )
-
-"%PYTHON%" -m pip install torch torchaudio --index-url %MODEL_INSTALL_INDEX%
-if errorlevel 1 exit /b 1
 
 echo Installing music model packages...
-"%PYTHON%" -m pip install yourmt3 beat-this torchcodec
+"%PYTHON%" -m pip install %MODEL_INSTALL_FLAGS% yourmt3 beat-this
 if errorlevel 1 exit /b 1
-
-:: torchcodec needs FFmpeg's shared DLLs; download them into ffmpeg\bin if missing (curl + tar ship with Windows 10/11)
-set "FF=ffmpeg-n8.1-latest-win64-lgpl-shared-8.1"
-if not exist "%ROOT%\ffmpeg\bin\ffmpeg.exe" (
-    echo Downloading FFmpeg...
-    curl -fL -o "%ROOT%\%FF%.zip" "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/%FF%.zip"
-    if errorlevel 1 exit /b 1
-    tar -xf "%ROOT%\%FF%.zip" -C "%ROOT%"
-    if errorlevel 1 exit /b 1
-    move "%ROOT%\%FF%" "%ROOT%\ffmpeg" >nul
-    del "%ROOT%\%FF%.zip"
-)
 
 echo Configuring FFmpeg...
 set "FFMPEG_BIN="
@@ -75,11 +62,12 @@ if defined FFMPEG_PATH if exist "%FFMPEG_PATH%\ffmpeg.exe" set "FFMPEG_BIN=%FFMP
 if not defined FFMPEG_BIN (
     for /f "delims=" %%F in ('where ffmpeg 2^>nul') do if not defined FFMPEG_BIN set "FFMPEG_BIN=%%~dpF"
 )
-if not defined FFMPEG_BIN if exist "%ROOT%\ffmpeg\bin\ffmpeg.exe" set "FFMPEG_BIN=%ROOT%\ffmpeg\bin"
+if not defined FFMPEG_BIN if exist "%ROOT%\SigmaMusic\ffmpeg\bin\ffmpeg.exe" set "FFMPEG_BIN=%ROOT%\SigmaMusic\ffmpeg\bin"
 
 if defined FFMPEG_BIN (
     set "FFMPEG_PATH=%FFMPEG_BIN%"
     set "PATH=%FFMPEG_BIN%;%PATH%"
+    setx FFMPEG_PATH "%FFMPEG_BIN%" >nul
     echo FFmpeg configured at "%FFMPEG_BIN%".
 ) else (
     echo WARNING: FFmpeg was not found.
