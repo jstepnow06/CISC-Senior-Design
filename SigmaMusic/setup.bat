@@ -74,6 +74,12 @@ if defined FFMPEG_BIN (
     echo Install FFmpeg, add its bin folder to PATH, and run setup again.
 )
 
+
+::installing CustomTkinter
+echo Installing and setting up CustomTkinter...
+"%PYTHON%" -m pip install customtkinter
+if errorlevel 1 exit /b 1
+
 ::installs for fitz
 echo installing and setting up PyMuPDF (fitz)...
 "%PYTHON%" -m pip install PyMuPDF
