@@ -86,6 +86,12 @@ if defined FFMPEG_BIN (
     echo Install FFmpeg, add its bin folder to PATH, and run setup again.
 )
 
+::installs for fitz
+echo installing and setting up PyMuPDF (fitz)...
+"%PYTHON%" -m pip install PyMuPDF
+if errorlevel 1 exit /b 1
+
+
 echo =========================================
 echo Installation complete. Run SigmaMusic\run_app.bat.
 echo =========================================
