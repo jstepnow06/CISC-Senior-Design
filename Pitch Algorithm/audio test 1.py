@@ -16,6 +16,65 @@ import pyaudio
 import numpy as np
 import matplotlib.pyplot as plt
 #Listen to audio
+def tuning():
+    p = pyaudio.PyAudio()
+    sample_rate = 44100
+    chunk_size = 1024
+    Window = int(0.05 * sample_rate)
+    bounds = [20, 1000]
+
+    audio_buffer = np.array([], dtype=np.float32)
+    stream = p.open(
+        format=pyaudio.paFloat32,
+        channels=1,
+        rate=sample_rate,
+        input=True,
+        frames_per_buffer=chunk_size
+    )
+
+    print("Listening... press Ctrl+C to stop")
+    c = 0
+    try:
+        while True:
+            data = stream.read(
+                chunk_size,
+                exception_on_overflow=False
+            )
+
+            audio_data = np.frombuffer(
+                data,
+                dtype=np.float32
+            )
+
+            audio_buffer = np.concatenate(
+                (audio_buffer, audio_data)
+            )
+
+            if len(audio_buffer) >= Window:
+
+                # Use the most recent 50 ms
+                segment = audio_buffer[-Window:]
+
+                pitch = PitchDetect(
+                    segment,
+                    Window,
+                    0,
+                    sample_rate,
+                    bounds
+                )
+
+                #print(f"Pitch: {pitch:.2f} Hz")
+                if segment[0] > 0.3:
+                    print(hz_to_note(pitch))
+
+    except KeyboardInterrupt:
+        print("\nRecording stopped.")
+
+    finally:
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
+
 p = pyaudio.PyAudio()
 
 sample_rate = 44100
@@ -76,11 +135,16 @@ def practiceFunc(x):
     return np.sin(x * np.pi * 2 * f_0)
 
 def ACF_Function(f, Window, time, lag):
-    return np.sum(f[time : time + Window] * f[lag + time: lag + Window + time])
+    return np.sum(
+        f[time : time + Window - lag] *
+        f[time + lag : time + Window]
+    )
 def DF_Function(f, Window, time, lag):
-    return ACF_Function(f, Window, time, 0) \
-    + ACF_Function(f, Window, time + lag, 0) \
-    - 2 * ACF_Function(f, Window, time, lag)
+    return (
+        ACF_Function(f, Window, time, 0)
+        + ACF_Function(f, Window + lag, time + lag, 0)
+        - 2 * ACF_Function(f, Window, time, lag)
+    )
 def normalize(f, Window, time, lag):
     if lag == 0:
         return 1
@@ -88,8 +152,18 @@ def normalize(f, Window, time, lag):
 
 
 def PitchDetect(f, Window, time, sampleRate, bounds):
-    DF_VALUES = [normalize(f, Window, time, i) for i in range(*bounds)]
-    sample = np.argmin(DF_VALUES) + bounds[0]
+
+    segment = f[time:time + Window]
+
+    lags = np.arange(bounds[0], bounds[1])
+
+    difference = np.array([
+        np.sum((segment[:-lag] - segment[lag:])**2)
+        for lag in lags
+    ])
+
+    sample = lags[np.argmin(difference)]
+
     return sampleRate / sample
 
 def gradientStuff(audio, gradient, sample_rate):
@@ -122,7 +196,22 @@ def gradientStuff(audio, gradient, sample_rate):
             if sum < 0:
                 print(str(kept_time[t])+" has a hold note")
         #if gradient is falling its a hold
+def hz_to_note(hz):
+    notes = [
+        "C", "C#", "D", "D#", "E", "F",
+        "F#", "G", "G#", "A", "A#", "B"
+    ]
 
+    if hz <= 0:
+        return None
+
+    # Convert frequency to MIDI note number
+    midi = round(69 + 12 * np.log2(hz / 440))
+
+    note = notes[midi % 12]
+    octave = (midi // 12) - 1
+
+    return f"{note}{octave}"
 def main():
     print("hi")
     sample_rate = 500
@@ -176,4 +265,4 @@ def main():
             #print(PitchDetect(audio, Window, i * 4410, 44100, bounds))
             #print(f"Time: {i / 10:.1f} seconds")
             pass
-main()
+tuning()

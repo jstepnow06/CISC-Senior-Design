@@ -124,6 +124,45 @@ class frontPage(ctk.CTkFrame):
             size=(max(1, width), max(1, height))
         )
 
+
+class tunePage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME 
+    #self here just refers to itself; it's own page/class
+    def __init__(self, parent, controller):
+        super().__init__(parent) # always has parent argument if not root page
+        
+        self.grid_columnconfigure(0, weight=1) #center horizontally
+
+        # space for row 0 and 1
+        self.grid_rowconfigure(0, weight=1) 
+        self.grid_rowconfigure(1, weight=1)
+
+        # push row 2 to bottom half of page
+        self.grid_rowconfigure(2, weight=2)
+        self.grid_rowconfigure(3, weight=1)
+        self.grid_rowconfigure(4, weight=1)
+
+        self.label = ctk.CTkLabel(self, text="This is the tune Page!", **LABEL_STYLE)
+
+        # tells this label to stick to the bottom of row 0
+        self.label.grid(row=0, column=0, padx=20, pady=20, sticky="s")
+
+        # Button to go back to the front page
+        self.btn = ctk.CTkButton(
+            self, 
+            text="Go Back Home", 
+            command=lambda: controller.show_page(frontPage),
+            **BUTTON_STYLE
+        )
+        self.btn.grid(row=1, column=0, padx=20, pady=10, sticky="n")
+        self.btn = ctk.CTkButton(
+                    self, 
+                    text="Start Listening", 
+                    command=lambda: controller.show_page(frontPage),
+                    **BUTTON_STYLE
+                )
+        self.btn.grid(row=2, column=0, padx=20, pady=10, sticky="n")
+
+
 # template for page to be switched into and from
 class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME 
     #self here just refers to itself; it's own page/class
@@ -155,6 +194,14 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
         )
         self.btn.grid(row=1, column=0, padx=20, pady=10, sticky="n")
 
+        self.btn = ctk.CTkButton(
+                    self, 
+                    text="Go to tuning page", 
+                    command=lambda: controller.show_page(frontPage),
+                    **BUTTON_STYLE
+                )
+        self.btn.grid(row=1, column=0, padx=20, pady=10, sticky="n")
+
         #Uploading Audio
         self.upload_btn = ctk.CTkButton(
             self, 
@@ -178,6 +225,10 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
         self.selected_file = None
         self.result = None
         self.controller = controller
+
+
+
+
 
     def upload_file(self): #helper function for uploading audio files
         file_path = filedialog.askopenfilename(
@@ -406,8 +457,17 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
             **BUTTON_STYLE,
         )
         self.home_button.grid(
-            row=2, column=0, columnspan=2, sticky="ew", padx=12, pady=(0, 8)
-        )
+                    row=2, column=0, columnspan=2, sticky="ew", padx=12, pady=(0, 8)
+            )
+        self.tune_button = ctk.CTkButton(
+                    self.menu,
+                    text="Tune Your Instrument",
+                    command=lambda: self.show_page(tunePage),
+                    **BUTTON_STYLE,
+            )
+        self.tune_button.grid(
+                    row=3, column=0, columnspan=3, sticky="ew", padx=12, pady=(0, 8)
+                )
 
         self.project_list = ctk.CTkScrollableFrame(
             self.menu,
@@ -415,7 +475,7 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
             corner_radius=0,
         )
         self.project_list.grid(
-            row=3, column=0, columnspan=2, sticky="nsew", padx=8, pady=(0, 8)
+            row=4, column=0, columnspan=2, sticky="nsew", padx=8, pady=(0, 8)
         )
 
         self.project_pages = {}
@@ -427,7 +487,7 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
 
         # placing all pages onto grid 
         # IMPORTANT: WHEN ADDING NEW PAGES, ADD THEM TO THIS LIST BELOW
-        for PageClass in (frontPage, secondPage, pdfPage):
+        for PageClass in (frontPage, secondPage, pdfPage, tunePage):
             #when creating the pages, parent is the container CTkFrame they are contained in
             #In controller = self, the controller is reffering to the App class itself (root)
             page_instance = PageClass(parent=container, controller=self)
