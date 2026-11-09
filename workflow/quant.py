@@ -5,6 +5,9 @@ import mido
 
 GRIDS = {4: "16ths", 3: "8th-note triplets"}
 
+def part_name(inst):
+    return "Drums" if inst.is_drum else pretty_midi.program_to_instrument_name(inst.program)
+
 def load(midi_path, beats_path):
     pm = pretty_midi.PrettyMIDI(str(midi_path))
     with open(beats_path) as f:
@@ -43,29 +46,57 @@ def off_grid(pm, grid):
     starts = np.interp([n.start for inst in pm.instruments for n in inst.notes],
                        grid, np.arange(len(grid)))
     return {steps: np.mean(np.abs(starts * steps - np.round(starts * steps)) /
-                           steps) for steps in GRIDS}
+                                                            steps) for steps in GRIDS}
+# Need to "snap" notes to their grid positions and clean them up
+# inst = instrument part | grid = beat times in seconds | steps = steps per beat (16ths or triplets)
+# kept = our cleaned notes | moved = counts notes that shift more than 50 ms (not good if a lot of them)
+# dupes = same pitch at same start? keep longest note only
+# keys let us put each pitch's notes in order on a time interval
+# if same pitch and overlap cut first note to end where next one starts
+def snap(inst, grid, steps):
+    grid_index = np.arange(len(grid))
+    snapped = {}
+
+    length = dupes = trimmed = moved = 0
+    for n in inst.notes:
+        start, end = (int(s) for s in np.round(np.interp([n.start, n.end], grid,
+                                                         grid_index) * steps))
+        if abs(np.interp(start / steps, grid_index, grid) - n.start) > 0.05:
+            moved += 1
+        if end <= start:
+            end = start + 1
+            length += 1
+        if (n.pitch, start) in snapped:
+            dupes +=1
+            if end <= snapped[(n.pitch, start)][0]:
+                continue
+        snapped[(n.pitch, start)] = (end, n.velocity)
+
+    keys = sorted(snapped)
+    kept = []
+
+    for (pitch, start), nxt in zip(keys, keys[1:] + [None]):
+        end, velocity = snapped[(pitch, start)]
+        if nxt and nxt[0] == pitch and nxt[1] < end:
+            end = nxt[1]
+            trimmed +=1
+        kept.append([start / steps, end / steps, pitch, velocity])
+    return kept, (moved, length, dupes, trimmed)
 
 def quantize(midi_path, beats_path, out_path):
     pm, beats_info = load(midi_path, beats_path)
     beats = np.array(beats_info["beats"])
     beats_per_bar = beats_info["beats_per_bar"]
-    
-    # print test statement will delete in future
-    print(f"{len(pm.instruments)} parts, last note ends at {pm.get_end_time():.2f}s; "
-          f"{len(beats)} beats from {beats[0]:.2f}s to {beats[-1]:.2f}s, {beats_per_bar} per bar, "
-          f"{beats_info['pickup_beats']} pickup")
-
     grid, add_before, add_after = build_grid(beats, beats_per_bar, beats_info["pickup_beats"], pm.get_end_time())
-    # print test statement will delete in future    
-    print(f"grid: {(len(grid)- 1) // beats_per_bar} measures from {grid[0]:.2f}s to {grid[-1]:.2f}s, "
-          f"{add_before} beats added before, {add_after} after")
     off = off_grid(pm, grid)
-    steps = min(off, key=off.get) # Pick smallest miss.
-    for s, label in GRIDS.items():
-        # test statement -> delete in future
-        print(f"{label:18s} off the grid by {off[s]:.3f} beats on average")
-    print(f"snapped to {GRIDS[steps]}:")
-          
+    steps = min(off, key=off.get)
+    cleaned = []
+
+    for inst in pm.instruments:
+        kept, (moved, length, dupes, trimmed) = snap(inst, grid, steps)
+        cleaned.append((inst, kept))
+        print(f" {part_name(inst):30s} {len(kept):4d} notes, {moved:3d} moved > 50ms, " 
+              f"{length:3d} length, {dupes} duplicates, {trimmed} trimmed")
     return out_path
 
 if __name__ == "__main__":
