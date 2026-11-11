@@ -41,19 +41,19 @@ echo Installing application dependencies...
 if errorlevel 1 exit /b 1
 
 echo Detecting GPU support...
-set "MODEL_INSTALL_FLAGS=--no-deps"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$gpu = Get-CimInstance Win32_VideoController | Where-Object { $_.Name -match 'NVIDIA' }; if ($gpu) { exit 0 } else { exit 1 }" >nul 2>&1
 if errorlevel 1 (
-    echo No NVIDIA GPU detected. Skipping PyTorch.
-) else (
-    echo NVIDIA GPU detected. Installing PyTorch...
-    "%PYTHON%" -m pip install torch
+    echo No NVIDIA GPU detected. Installing CPU-only PyTorch...
+    "%PYTHON%" -m pip install torch --index-url https://download.pytorch.org/whl/cpu
     if errorlevel 1 exit /b 1
-    set "MODEL_INSTALL_FLAGS="
+) else (
+    echo NVIDIA GPU detected. Installing CUDA-enabled PyTorch...
+    "%PYTHON%" -m pip install torch --index-url https://download.pytorch.org/whl/cu132
+    if errorlevel 1 exit /b 1
 )
 
 echo Installing music model packages...
-"%PYTHON%" -m pip install %MODEL_INSTALL_FLAGS% yourmt3 beat-this
+"%PYTHON%" -m pip install yourmt3 beat-this
 if errorlevel 1 exit /b 1
 
 echo Configuring FFmpeg...
