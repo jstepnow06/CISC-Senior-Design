@@ -67,7 +67,7 @@ class loadingPage(ctk.CTkFrame): #add this to the app grid
             text="Play Dino Game",
             # call function WITHOUT parentheses, otherwise it'll open immedietely isteda of waiting
             # for a click
-            **LABEL_STYLE
+            **BUTTON_STYLE,
             command=self.open_dino_game
         )
         self.play_btn.grid(row=1, column=0, padx=20, pady=20)
@@ -78,7 +78,7 @@ class loadingPage(ctk.CTkFrame): #add this to the app grid
             text = "Close Dino Game :(",
             # call function WITHOUT parentheses, otherwise it'll open immedietely isteda of waiting
             # for a click
-            **LABEL_STYLE
+            **BUTTON_STYLE,
             command=self.close_dino_game
         )
 
