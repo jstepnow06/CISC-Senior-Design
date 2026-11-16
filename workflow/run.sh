@@ -4,7 +4,7 @@ if ! command -v nvidia-smi > /dev/null; then GPU=""; echo "no NVIDIA GPU found, 
  
 TTY=""
 if [ $# -eq 0 ]; then
-    echo "usage: ./run.sh <audio file>        run YourMT3+ and Beat_This on a file in this folder"
+    echo "usage: ./run.sh <audio file>        run YourMT3+, Beat_This and quant.py on a file in this folder"
     echo "       ./run.sh <script.py> [args]  run a script in this folder"
     echo "       ./run.sh bash                open a shell in the environment"
     exit 1
@@ -14,9 +14,10 @@ elif [ "$1" == "bash" ]; then
     CMD=(bash)
     TTY="-it"
 else
-    CMD=(bash -c 'set -e
+	CMD=(bash -c 'set -e
         python MIDIscribe.py "$1"
-	python beats.py "$1"' _ "$1")        
+	python beats.py "$1"
+	python quant.py "$1"' _ "$1")        
 fi
 
 # --- run in docker ---

@@ -7,9 +7,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
  
 #sets working directory
 WORKDIR /work
-#pip installs torch and pretty_midi libraries (for audio)
+#pip installs torch, mido, and pretty_midi libraries (for audio)
 RUN pip install --no-cache-dir torch torchaudio \
-    && pip install --no-cache-dir yourmt3 huggingface_hub torchcodec pretty_midi \
+    && pip install --no-cache-dir yourmt3 huggingface_hub torchcodec pretty_midi mido \
         https://github.com/CPJKU/beat_this/archive/main.zip
 
 
