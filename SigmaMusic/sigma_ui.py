@@ -209,7 +209,7 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
     def run_pipeline(self, file_path):
             # runs each step with the same python as the GUI (.venv), outputs land next to the song
             # song.wav -> song_ymt3.mid, song_beats.json
-            for script in ("MIDIscribe.py", "beats.py", "quant.py"):
+            for script in ("MIDIscribe.py", "beats.py", "quant.py", "draw.py"):
                 result = subprocess.run(
                     [sys.executable, str(WORKFLOW / script), str(file_path)],
                     cwd=file_path.parent,
@@ -253,6 +253,10 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
         for index, line in enumerate(lines):
             pdf.drawString(72, 680 - index * 24, line)
         pdf.save()
+        sheet_path = output_stem.parent / f"{output_stem.name}_sheet.pdf"
+        if sheet_path.exists():
+            return sheet_path
+        print("draw.py made no sheet, using summary pdf")
         return pdf_path
 
     def check(self):
