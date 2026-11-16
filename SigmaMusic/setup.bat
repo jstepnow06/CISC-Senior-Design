@@ -85,6 +85,17 @@ echo installing and setting up PyMuPDF (fitz)...
 "%PYTHON%" -m pip install PyMuPDF
 if errorlevel 1 exit /b 1
 
+::installing tkinterweb (for loading screen)
+echo installing and setting up tkinerweb
+"%PYTHON%" -m pip install tkinterweb
+if errorlevel 1 exit /b 1
+
+::installing pywebview (for loading screen)
+echo installing and setting up pywebview
+"%PYTHON%" -m pip install pywebview
+if errorlevel 1 exit /b 1
+
+
 
 echo =========================================
 echo Installation complete. Run SigmaMusic\run_app.bat.

@@ -13,65 +13,112 @@ from reportlab.pdfgen import canvas
 from audio_player import AudioPlayer
 from styles import BUTTON_STYLE, LABEL_STYLE
 
+
+#for dino loading screen
+import time
+from tkinterweb import HtmlFrame
+import webview 
+import multiprocessing
+
 #Defines parameters for displaying the logo
 IMAGE_PATH = Path(__file__).resolve().parent.parent / "assets" / "sigma_logo.png"
 WORKFLOW = Path(__file__).resolve().parent.parent / "workflow" # point to workflow folder for running pipeline
 FFMPEG_BIN = Path(__file__).resolve().parent.parent / "ffmpeg" / "bin" # torchcodec needs these DLLs to read audio
 BACKGROUND_SCALE = 0.7
 
-# REMINDER: delete comment string below later, restructuring app pages below it
-""""
-def load_sigma_image(size: tuple[int, int]) -> ctk.CTkImage | None:
-    try:
-        image = Image.open(IMAGE_PATH).convert("RGBA")
-        return ctk.CTkImage(light_image=image, dark_image=image, size=size)
-    except FileNotFoundError:
-        print(f"Image not found: {IMAGE_PATH}")
-        return None
-    except Exception as exc:
-        print(f"Could not load image: {exc}")
-        return None
 
+import multiprocessing
+import webview
 
-def on_button_click(image_label: ctk.CTkLabel) -> None:
-    print("SIGMA OVERWATCH")
-    sigma_image = load_sigma_image((300, 300))
-    if sigma_image is not None:
-        image_label.configure(image=sigma_image, text="")
-        image_label.pack(pady=10)
-
-
-def main() -> None:  # main function to open the window
-    root = ctk.CTk()  # creating the application window (root of all the app)
-    root.title("Sigma Music")
-    root.geometry("900x600")
-    root.minsize(500, 300)
-    root.configure(fg_color="#f5f5f5")
-
-
-    ex_text_label = ctk.CTkLabel(
-        master = root, #Where text goes
-        text = "THIS IS A TEST", # What it says
-        font = ("arial", 20), # How it looks
-        text_color = "black" #color of text
+# Launches the HTML Dino game in a separate Chromium-backed window
+def launch_dino_html(html_path_str, x = None, y = None):
+    webview.create_window(
+        "Dino Game",
+        html_path_str,
+        width=750,
+        height=360,
+        x=x,
+        y=y,
+        resizable=True
     )
-
-    ex_text_label.pack(pady=40) #placing the text somewhere
-
-    text = ctk.CTkLabel(root, text="Welcome to Sigma Music", fg_color="#f5f5f5")
-    text.pack(pady=10)
-
-    image_label = ctk.CTkLabel(root, text="", width=0, height=0)
-    image_label.pack_forget()
-
-    button = ctk.CTkButton(root, text="What is that melody?", command=lambda: on_button_click(image_label))
-    button.pack(pady=10)
+    webview.start()
 
 
+class loadingPage(ctk.CTkFrame): #add this to the app grid
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        self.dino_process = None # Tracks the running Dino window process
 
-    #KEEP THIS LINE AT THE END OF THE FUNCTION
-    root.mainloop()  # keeps the window open; otherwise would just exit right after opening
-"""
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+
+        
+        self.label = ctk.CTkLabel(
+            self,
+            text = "Processing audio...",
+            **LABEL_STYLE
+        )
+        self.label.grid(row=0,column=0, padx=20, pady=(20,10))
+
+        # Optional button shown; game ins't forced to open 
+        self.play_btn = ctk.CTkButton(
+            self,
+            text="Play Dino Game",
+            # call function WITHOUT parentheses, otherwise it'll open immedietely isteda of waiting
+            # for a click
+            **BUTTON_STYLE,
+            command=self.open_dino_game
+        )
+        self.play_btn.grid(row=1, column=0, padx=20, pady=20)
+
+        # Dedicated button to close game  and return to loading screen
+        self.close_btn = ctk.CTkButton(
+            self,
+            text = "Close Dino Game :(",
+            # call function WITHOUT parentheses, otherwise it'll open immedietely isteda of waiting
+            # for a click
+            **BUTTON_STYLE,
+            command=self.close_dino_game
+        )
+
+    # Shows the embedded game, hides the Play Button and reveals the close button
+    def open_dino_game(self):
+        self.play_btn.grid_forget()
+        self.label.configure(text="Processing audio... Press SPACE or Click to jump!")
+        
+        self.close_btn.grid(row=1, column=0, padx=20, pady=20)
+
+        html_path = Path(__file__).resolve().parent / "dino_loader.html"
+        # Opens dino_loader.html in a separate process so full HTML5/JS works 
+        if self.dino_process is None or not self.dino_process.is_alive():
+            # Gets center of coordinates relative to main app window
+            root = self.winfo_toplevel()
+            popup_w, popup_h = 750, 360
+            x = root.winfo_rootx() + (root.winfo_width() - popup_w) // 2
+            y = root.winfo_rooty() + (root.winfo_height() - popup_h) // 2
+
+            self.dino_process = multiprocessing.Process(
+                target=launch_dino_html,
+                args=(html_path.as_uri(), max(0, x), max(0, y))
+            )
+            self.dino_process.start()
+
+    # Closes the embedded game, unloads html to stop CPU usage then returns the Play button
+    def close_dino_game(self):
+        # Terminates the Dino game window process when closed
+        if self.dino_process and self.dino_process.is_alive():
+            self.dino_process.terminate()
+            self.dino_process.join()
+        self.dino_process = None
+        
+        self.close_btn.grid_forget()
+        self.label.configure(text="Processing audio...")
+        self.play_btn.grid(row=1, column=0, padx=20, pady=20)
+
+    def on_show(self):
+        # Always resets to optional button view when entering loading page
+        self.close_dino_game()
 
 
 #Front/first page of the applications
@@ -199,6 +246,9 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
         self.process_btn.configure(state="disabled")
         self.label.configure(text="Processing audio...")
         self.result = None
+
+        self.controller.show_page(loadingPage)
+
         threading.Thread(
             target=self.run_pipeline,
             args=(self.selected_file,),
@@ -431,7 +481,7 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
 
         # placing all pages onto grid 
         # IMPORTANT: WHEN ADDING NEW PAGES, ADD THEM TO THIS LIST BELOW
-        for PageClass in (frontPage, secondPage, pdfPage):
+        for PageClass in (frontPage, secondPage, pdfPage, loadingPage):
             #when creating the pages, parent is the container CTkFrame they are contained in
             #In controller = self, the controller is reffering to the App class itself (root)
             page_instance = PageClass(parent=container, controller=self)
@@ -456,6 +506,9 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
     def show_page(self, page_class):
         page = self.pages[page_class] if page_class in self.pages else page_class
         page.tkraise() #lifts that frame (page) into the top layer
+
+        if hasattr(page, "on_show"):
+            page.on_show()
         if self.menu_open or self.menu_animating:
             self.menu.lift()
             self.menu_button.lift()
