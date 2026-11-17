@@ -8,6 +8,9 @@ from styles import BUTTON_STYLE
 
 
 class AudioPlayer(ctk.CTkFrame):
+    PLAY_ICON = "\u25b6"
+    PAUSE_ICON = "\u23f8"
+
     def __init__(self, parent):
         super().__init__(parent)
         self.grid_columnconfigure(1, weight=1)
@@ -15,15 +18,24 @@ class AudioPlayer(ctk.CTkFrame):
         self.file_label = ctk.CTkLabel(
             self,
             text="No audio file selected",
+            width=1,
+            anchor="w",
             text_color="gold",
             font=("Centaur", 20),
         )
-        self.file_label.grid(row=0, column=0, columnspan=3, padx=10, pady=(10, 4))
+        self.file_label.grid(
+            row=0,
+            column=0,
+            columnspan=3,
+            padx=10,
+            pady=(10, 4),
+            sticky="ew",
+        )
 
         self.play_pause_btn = ctk.CTkButton(
             self,
-            text="Play",
-            width=100,
+            text=self.PLAY_ICON,
+            width=48,
             command=self.toggle_playback,
             state="disabled",
             **BUTTON_STYLE,
@@ -69,7 +81,7 @@ class AudioPlayer(ctk.CTkFrame):
         self.time_label.configure(text=f"00:00 / {self.format_time(self.audio_duration)}")
         self.seek_slider.configure(to=self.audio_duration, state="normal")
         self.seek_slider.set(0)
-        self.play_pause_btn.configure(text="Play", state="normal")
+        self.play_pause_btn.configure(text=self.PLAY_ICON, state="normal")
         return True
 
     def toggle_playback(self):
@@ -89,7 +101,9 @@ class AudioPlayer(ctk.CTkFrame):
             self.seek_slider.set(0)
             self.is_paused = False
 
-        self.play_pause_btn.configure(text="Pause" if not self.is_paused else "Play")
+        self.play_pause_btn.configure(
+            text=self.PLAY_ICON if self.is_paused else self.PAUSE_ICON
+        )
 
     def seek_audio(self, value):
         if self.audio_path is None or self.is_seeking:
@@ -102,7 +116,7 @@ class AudioPlayer(ctk.CTkFrame):
         if not was_playing:
             pygame.mixer.music.pause()
             self.is_paused = True
-            self.play_pause_btn.configure(text="Play")
+            self.play_pause_btn.configure(text=self.PLAY_ICON)
 
     def seek_finished(self, _event=None):
         self.is_seeking = False
@@ -118,7 +132,7 @@ class AudioPlayer(ctk.CTkFrame):
                     text=f"{self.format_time(position)} / {self.format_time(self.audio_duration)}"
                 )
             elif self.seek_slider.get() >= self.audio_duration and self.audio_duration:
-                self.play_pause_btn.configure(text="Play")
+                self.play_pause_btn.configure(text=self.PLAY_ICON)
                 self.is_paused = False
 
         self.after(250, self.update_playback_position)

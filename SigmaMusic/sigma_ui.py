@@ -177,30 +177,22 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
     def __init__(self, parent, controller):
         super().__init__(parent) # always has parent argument if not root page
         
-        self.grid_columnconfigure(0, weight=1) #center horizontally
-
-        # space for row 0 and 1
-        self.grid_rowconfigure(0, weight=1) 
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(1, weight=1)
-
-        # push row 2 to bottom half of page
-        self.grid_rowconfigure(2, weight=2)
         self.grid_rowconfigure(3, weight=1)
-        self.grid_rowconfigure(4, weight=1)
 
-        self.label = ctk.CTkLabel(self, text="This is the Second Page!", **LABEL_STYLE)
-
-        # tells this label to stick to the bottom of row 0
-        self.label.grid(row=0, column=0, padx=20, pady=20, sticky="s")
-
-        # Button to go back to the front page
-        self.btn = ctk.CTkButton(
-            self, 
-            text="Go Back Home", 
-            command=lambda: controller.show_page(frontPage),
-            **BUTTON_STYLE
+        logo = Image.open(IMAGE_PATH.parent / "sigma_small.png")
+        self.logo_image = ctk.CTkImage(
+            light_image=logo,
+            dark_image=logo,
+            size=(96, 96),
         )
-        self.btn.grid(row=1, column=0, padx=20, pady=10, sticky="n")
+        self.logo_label = ctk.CTkLabel(self, image=self.logo_image, text="")
+        self.logo_label.grid(row=0, column=0, columnspan=2, padx=20, pady=(16, 0))
+
+        self.label = ctk.CTkLabel(self, text="Upload Audio To Begin", **LABEL_STYLE)
+        self.label.grid(row=1, column=0, columnspan=2, padx=20, pady=20, sticky="s")
 
         #Uploading Audio
         self.upload_btn = ctk.CTkButton(
@@ -209,7 +201,7 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
             command=self.upload_file, #calls helper function below
             **BUTTON_STYLE
             )
-        self.upload_btn.grid(row=2, column=0, padx=20, pady=10, sticky="")
+        self.upload_btn.grid(row=2, column=0, padx=(20, 10), pady=10, sticky="e")
 
         self.process_btn = ctk.CTkButton(
             self,
@@ -218,13 +210,19 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
             state="disabled",
             **BUTTON_STYLE
         )
-        self.process_btn.grid(row=3, column=0, padx=20, pady=10, sticky="")
+        self.process_btn.grid(row=2, column=1, padx=(10, 20), pady=10, sticky="w")
 
         self.player_frame = AudioPlayer(self)
-        self.player_frame.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
+        self.player_frame.grid(row=3, column=0, columnspan=2, padx=20, pady=10, sticky="ew")
         self.selected_file = None
         self.result = None
         self.controller = controller
+
+    def on_show(self):
+        self.label.configure(text="Upload Audio To Begin")
+        self.upload_btn.configure(state="normal")
+        self.process_btn.configure(state="disabled")
+        self.selected_file = None
 
     def upload_file(self): #helper function for uploading audio files
         file_path = filedialog.askopenfilename(
@@ -330,37 +328,111 @@ class pdfPage(ctk.CTkFrame):
         self.document = None
         self.page_index = 0
         self.image = None
+        self._last_render = None
         self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=0)
+        self.grid_columnconfigure(2, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
         self.title = ctk.CTkLabel(self, text="Processing Output", **LABEL_STYLE)
-        self.title.grid(row=0, column=0, padx=20, pady=15)
-        self.viewer = ctk.CTkLabel(self, text="No PDF loaded")
-        self.viewer.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
+        self.title.grid(row=0, column=0, columnspan=3, padx=20, pady=15)
+        self.viewer = ctk.CTkLabel(self, text="No PDF loaded", anchor="center")
+        self.viewer.grid(
+            row=1,
+            column=0,
+            columnspan=3,
+            padx=20,
+            pady=(80, 20),
+            sticky="nsew",
+        )
+        self.viewer.bind("<Configure>", self._on_viewer_resize)
+
+        self.previous_btn = ctk.CTkButton(
+            self,
+            text="\u25c0",
+            width=48,
+            command=self.show_previous_page,
+            state="disabled",
+            **BUTTON_STYLE
+        )
+        self.previous_btn.grid(row=2, column=0, padx=20, pady=15, sticky="e")
+
         self.back_btn = ctk.CTkButton(
             self,
             text="Process Another Audio File",
             command=lambda: controller.show_page(secondPage),
             **BUTTON_STYLE
         )
-        self.back_btn.grid(row=2, column=0, padx=20, pady=15)
+        self.back_btn.grid(row=2, column=1, padx=20, pady=15)
+
+        self.next_btn = ctk.CTkButton(
+            self,
+            text="\u25b6",
+            width=48,
+            command=self.show_next_page,
+            state="disabled",
+            **BUTTON_STYLE
+        )
+        self.next_btn.grid(row=2, column=2, padx=20, pady=15, sticky="w")
 
     def load_pdf(self, pdf_path):
         if self.document is not None:
             self.document.close()
         self.document = fitz.open(str(pdf_path))
         self.page_index = 0
+        self._last_render = None
         self.title.configure(text=f"Processing Output: {pdf_path.name}")
+        self.update_navigation_buttons()
         self.display_page()
+        self.after_idle(self.display_page)
 
     def display_page(self):
         if self.document is None or not self.document.page_count:
             return
         page = self.document.load_page(self.page_index)
-        pixmap = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5), alpha=False)
+        viewer_width = max(self.viewer.winfo_width() - 40, 1)
+        viewer_height = max(self.viewer.winfo_height() - 20, 1)
+        render_key = (self.page_index, viewer_width, viewer_height)
+        if render_key == self._last_render:
+            return
+        scale = min(
+            viewer_width / page.rect.width,
+            viewer_height / page.rect.height,
+        )
+        pixmap = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
         image = Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
         self.image = ctk.CTkImage(light_image=image, dark_image=image, size=image.size)
+        self._last_render = render_key
         self.viewer.configure(image=self.image, text="")
+
+    def _on_viewer_resize(self, _event=None):
+        if self.document is not None:
+            self.after_idle(self.display_page)
+
+    def update_navigation_buttons(self):
+        has_document = self.document is not None and self.document.page_count > 0
+        self.previous_btn.configure(
+            state="normal" if has_document and self.page_index > 0 else "disabled"
+        )
+        self.next_btn.configure(
+            state=(
+                "normal"
+                if has_document and self.page_index < self.document.page_count - 1
+                else "disabled"
+            )
+        )
+
+    def show_previous_page(self):
+        if self.document is not None and self.page_index > 0:
+            self.page_index -= 1
+            self.update_navigation_buttons()
+            self.display_page()
+
+    def show_next_page(self):
+        if self.document is not None and self.page_index < self.document.page_count - 1:
+            self.page_index += 1
+            self.update_navigation_buttons()
+            self.display_page()
 
 
 
@@ -443,16 +515,6 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
         )
         self.menu_trigger_button.place(x=12, y=12)
 
-        self.new_project_button = ctk.CTkButton(
-            self.menu,
-            text="New project",
-            command=self.create_project,
-            **BUTTON_STYLE,
-        )
-        self.new_project_button.grid(
-            row=1, column=0, columnspan=2, sticky="ew", padx=12, pady=8
-        )
-
         self.home_button = ctk.CTkButton(
             self.menu,
             text="Home",
@@ -460,6 +522,16 @@ class App(ctk.CTk): #will hold rest of the CTkFrames (pages), functionally like 
             **BUTTON_STYLE,
         )
         self.home_button.grid(
+            row=1, column=0, columnspan=2, sticky="ew", padx=12, pady=8
+        )
+
+        self.new_project_button = ctk.CTkButton(
+            self.menu,
+            text="New project",
+            command=self.create_project,
+            **BUTTON_STYLE,
+        )
+        self.new_project_button.grid(
             row=2, column=0, columnspan=2, sticky="ew", padx=12, pady=(0, 8)
         )
 
