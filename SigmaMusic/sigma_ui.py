@@ -332,17 +332,18 @@ class pdfPage(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=0)
         self.grid_columnconfigure(2, weight=1)
+        self.grid_rowconfigure(0, minsize=90)
         self.grid_rowconfigure(1, weight=1)
 
         self.title = ctk.CTkLabel(self, text="Processing Output", **LABEL_STYLE)
         self.title.grid(row=0, column=0, columnspan=3, padx=20, pady=15)
-        self.viewer = ctk.CTkLabel(self, text="No PDF loaded", anchor="center")
+        self.viewer = ctk.CTkLabel(self, text="No PDF loaded", anchor="n")
         self.viewer.grid(
             row=1,
             column=0,
             columnspan=3,
             padx=20,
-            pady=(80, 20),
+            pady=(50, 10),
             sticky="nsew",
         )
         self.viewer.bind("<Configure>", self._on_viewer_resize)
@@ -383,7 +384,6 @@ class pdfPage(ctk.CTkFrame):
         self._last_render = None
         self.title.configure(text=f"Processing Output: {pdf_path.name}")
         self.update_navigation_buttons()
-        self.display_page()
         self.after_idle(self.display_page)
 
     def display_page(self):
@@ -391,14 +391,14 @@ class pdfPage(ctk.CTkFrame):
             return
         page = self.document.load_page(self.page_index)
         viewer_width = max(self.viewer.winfo_width() - 40, 1)
-        viewer_height = max(self.viewer.winfo_height() - 20, 1)
+        viewer_height = max(self.viewer.winfo_height() - 60, 1)
         render_key = (self.page_index, viewer_width, viewer_height)
         if render_key == self._last_render:
             return
         scale = min(
             viewer_width / page.rect.width,
             viewer_height / page.rect.height,
-        )
+        ) * 0.88
         pixmap = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
         image = Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
         self.image = ctk.CTkImage(light_image=image, dark_image=image, size=image.size)
