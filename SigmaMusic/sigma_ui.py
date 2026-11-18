@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import sys #for running the pipeline scripts
+import shutil
 import customtkinter as ctk
 from PIL import Image
 import threading 
@@ -342,6 +343,7 @@ class pdfPage(ctk.CTkFrame):
         super().__init__(parent)
         self.controller = controller
         self.document = None
+        self.pdf_path = None
         self.page_index = 0
         self.image = None
         self._last_render = None
@@ -364,15 +366,18 @@ class pdfPage(ctk.CTkFrame):
         )
         self.viewer.bind("<Configure>", self._on_viewer_resize)
 
+        self.navigation_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.navigation_frame.place(relx=0.5, rely=1.0, y=-15, anchor="s")
+
         self.previous_btn = ctk.CTkButton(
-            self,
+            self.navigation_frame,
             text="\u25c0",
             width=48,
             command=self.show_previous_page,
             state="disabled",
             **BUTTON_STYLE
         )
-        self.previous_btn.grid(row=2, column=0, padx=20, pady=15, sticky="e")
+        self.previous_btn.grid(row=0, column=0, padx=(0, 8))
 
         self.back_btn = ctk.CTkButton(
             self,
@@ -380,26 +385,37 @@ class pdfPage(ctk.CTkFrame):
             command=lambda: controller.show_page(secondPage),
             **BUTTON_STYLE
         )
-        self.back_btn.grid(row=2, column=1, padx=20, pady=15)
+        self.back_btn.grid(row=2, column=0, padx=20, pady=15, sticky="w")
+
+        self.download_btn = ctk.CTkButton(
+            self,
+            text="Download PDF",
+            command=self.download_pdf,
+            state="disabled",
+            **BUTTON_STYLE
+        )
+        self.download_btn.grid(row=2, column=2, padx=20, pady=15, sticky="e")
 
         self.next_btn = ctk.CTkButton(
-            self,
+            self.navigation_frame,
             text="\u25b6",
             width=48,
             command=self.show_next_page,
             state="disabled",
             **BUTTON_STYLE
         )
-        self.next_btn.grid(row=2, column=2, padx=20, pady=15, sticky="w")
+        self.next_btn.grid(row=0, column=1, padx=(8, 0))
 
     def load_pdf(self, pdf_path):
         if self.document is not None:
             self.document.close()
-        self.document = fitz.open(str(pdf_path))
+        self.pdf_path = Path(pdf_path)
+        self.document = fitz.open(str(self.pdf_path))
         self.page_index = 0
         self._last_render = None
         self.title.configure(text=f"Processing Output: {pdf_path.name}")
         self.update_navigation_buttons()
+        self.download_btn.configure(state="normal")
         self.after_idle(self.display_page)
 
     def display_page(self):
@@ -437,6 +453,25 @@ class pdfPage(ctk.CTkFrame):
                 else "disabled"
             )
         )
+        self.download_btn.configure(state="normal" if has_document else "disabled")
+
+    def download_pdf(self):
+        if self.pdf_path is None or not self.pdf_path.exists():
+            return
+
+        destination = filedialog.asksaveasfilename(
+            title="Download PDF",
+            initialdir=str(self.pdf_path.parent),
+            initialfile=self.pdf_path.name,
+            defaultextension=".pdf",
+            filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
+        )
+        if not destination:
+            return
+
+        destination_path = Path(destination)
+        if self.pdf_path.resolve() != destination_path.resolve():
+            shutil.copy2(str(self.pdf_path), str(destination_path))
 
     def show_previous_page(self):
         if self.document is not None and self.page_index > 0:
