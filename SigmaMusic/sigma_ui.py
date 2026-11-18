@@ -255,8 +255,17 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
         self.after(200, self.check)
 
     def run_pipeline(self, file_path):
-            # runs each step with the same python as the GUI (.venv), outputs land next to the song
-            # song.wav -> song_ymt3.mid, song_beats.json
+        # runs each step with the same python as the GUI (.venv), outputs land next to the song
+        # song.wav -> song_ymt3.mid, song_beats.json
+        stem = file_path.with_suffix("")
+        temp_files = [
+            stem.parent / f"{stem.name}_ymt3.mid",
+            stem.parent / f"{stem.name}_beats.json",
+            stem.parent / f"{stem.name}_quant.mid",
+            stem.parent / f"{stem.name}_sheet.musicxml",
+            stem.parent / f"{stem.name}_sheet.mid",
+        ]
+        try:
             for script in ("MIDIscribe.py", "beats.py", "quant.py", "draw.py"):
                 result = subprocess.run(
                     [sys.executable, str(WORKFLOW / script), str(file_path)],
@@ -272,6 +281,12 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
                 self.result = self.create_pdf(file_path)
             except (OSError, ValueError, KeyError) as exc:
                 self.result = f"Could not create PDF: {exc}"
+        finally:
+            for path in temp_files:
+                try:
+                    os.remove(path)
+                except FileNotFoundError:
+                    pass
 
     @staticmethod
     def create_pdf(file_path):
@@ -302,6 +317,7 @@ class secondPage(ctk.CTkFrame): #REMINDER: CHANGE PAGE NAME
             pdf.drawString(72, 680 - index * 24, line)
         pdf.save()
         sheet_path = output_stem.parent / f"{output_stem.name}_sheet.pdf"
+        os.remove(pdf_path)
         if sheet_path.exists():
             return sheet_path
         print("draw.py made no sheet, using summary pdf")
